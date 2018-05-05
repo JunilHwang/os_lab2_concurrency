@@ -4,7 +4,7 @@
 *	    Student id : 
 *	    Student name : 
 *
-*   lab1_sched.c :
+*   lab2_sched.c :
 *       - Lab2 header file.
 *       - It contains bst node structure, timeval functions, atomic functions .. etc.
 *
@@ -16,8 +16,9 @@
 
 #include <pthread.h>
 
-#define LAB2_SUCCESS                0
-#define LAB2_ERROR                 -1
+#define LAB2_SUCCESS   0
+#define LAB2_ERROR    -1
+#define max(a,b)(((a) > (b)) ? (a): (b))
 
 /*
  * lab2_node
@@ -29,8 +30,7 @@
 typedef struct lab2_node {
 
     pthread_mutex_t mutex;
-    struct lab2_node *left;
-    struct lab2_node *right;
+    struct lab2_node *left, *right;
     int key;
 
 } lab2_node;
@@ -74,6 +74,7 @@ int lab2_node_remove_fg(lab2_tree *tree, int key);
 int lab2_node_remove_cg(lab2_tree *tree, int key);
 void lab2_tree_delete(lab2_tree *tree);
 void lab2_node_delete(lab2_node *node);
+void inorder(lab2_node *node);
 
 
 /*

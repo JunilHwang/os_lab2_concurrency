@@ -270,6 +270,7 @@ void bst_test(int num_threads,int node_count){
     exe_time = get_timeval(&tv_delete_start, &tv_delete_end);
 
     print_result(tree ,num_threads, node_count, is_sync, LAB2_OPTYPE_DELETE,exe_time);
+    printf("test\n");
     lab2_tree_delete(tree);
 
     printf("\n");
