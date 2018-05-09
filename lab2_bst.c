@@ -19,7 +19,7 @@
 
 #include "lab2_sync_types.h"
 
-pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex;
 int node_count = 0;
 
 /*
@@ -118,41 +118,34 @@ int lab2_node_insert(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
     // You need to implement lab2_node_insert function.
-    
     lab2_node *p = NULL,
               *t = tree->root,
               *n;
     int key = new_node->key;
     while(t != NULL){
-        //printf("mtx lock : %d\n",&mtx);
         if(key == t->key) {
-            // printf("key == t->key \n");
+            node_count++;
             return 0;
         }
-        pthread_mutex_lock(&mtx);
         p = t;
+        pthread_mutex_lock(&p->mutex);
         t = key < t->key ? t->left : t->right;
-        pthread_mutex_unlock(&mtx);
-        //printf("mtx unlock : %d\n",&mtx);
+        pthread_mutex_unlock(&p->mutex);
     }
     n = new_node;
     if(p == NULL) {
-        pthread_mutex_lock(&mtx);
         tree->root = n;
-        // printf("t = new_node; \n");
         node_count++;
-        pthread_mutex_unlock(&mtx);
         return 0;
     }
-    pthread_mutex_lock(&mtx);
+    pthread_mutex_lock(&tree->mutex);
     if(key < p->key){
         p->left = n;
     } else {
         p->right = n;
     }
     node_count++;
-    pthread_mutex_unlock(&mtx);
-    // printf("insert key : %d\n", key);
+    pthread_mutex_unlock(&tree->mutex);
     return 0;
 }
 
@@ -170,10 +163,12 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
               *t = tree->root,
               *n;
     int key = new_node->key;
+    pthread_mutex_lock(&tree->mutex);
     while(t != NULL){
         if(key == t->key) {
             // printf("key == t->key \n");
             node_count++;
+            pthread_mutex_unlock(&tree->mutex);
             return 0;
         }
         p = t;
@@ -184,6 +179,7 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
         tree->root = n;
         // printf("t = new_node; \n");
         node_count++;
+        pthread_mutex_unlock(&tree->mutex);
         return 0;
     }
     if(key < p->key){
@@ -193,6 +189,7 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
     }
     // printf("insert key : %d\n", key);z
     node_count++;
+    pthread_mutex_unlock(&tree->mutex);
     return 0;
 }
 
