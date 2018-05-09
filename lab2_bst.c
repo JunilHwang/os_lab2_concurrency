@@ -124,7 +124,9 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
     int key = new_node->key;
     while(t != NULL){
         if(key == t->key) {
+            pthread_mutex_lock(&tree->mutex);
             node_count++;
+            pthread_mutex_unlock(&tree->mutex);
             return 0;
         }
         p = t;
@@ -134,8 +136,10 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
     }
     n = new_node;
     if(p == NULL) {
+        pthread_mutex_lock(&tree->mutex);
         tree->root = n;
         node_count++;
+        pthread_mutex_unlock(&tree->mutex);
         return 0;
     }
     pthread_mutex_lock(&tree->mutex);
