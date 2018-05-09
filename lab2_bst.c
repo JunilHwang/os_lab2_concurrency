@@ -127,9 +127,10 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
         //printf("mtx lock : %d\n",&mtx);
         if(key == t->key) {
             // printf("key == t->key \n");
+
             return 0;
         }
-        pthread_mutex_lock(&mtx);
+        pthread_mutex_unlock(&mtx);
         p = t;
         t = key < t->key ? t->left : t->right;
         pthread_mutex_unlock(&mtx);
@@ -166,6 +167,7 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
     // You need to implement lab2_node_insert_cg function.
+    pthread_mutex_lock(&mtx);
     lab2_node *p = NULL,
               *t = tree->root,
               *n;
@@ -174,6 +176,7 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
         if(key == t->key) {
             // printf("key == t->key \n");
             node_count++;
+            pthread_mutex_unlock(&mtx);
             return 0;
         }
         p = t;
@@ -184,6 +187,7 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
         tree->root = n;
         // printf("t = new_node; \n");
         node_count++;
+        pthread_mutex_unlock(&mtx);
         return 0;
     }
     if(key < p->key){
@@ -193,6 +197,7 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
     }
     // printf("insert key : %d\n", key);z
     node_count++;
+    pthread_mutex_unlock(&mtx);
     return 0;
 }
 
@@ -343,8 +348,12 @@ int lab2_node_remove_fg(lab2_tree *tree, int key) {
  */
 int lab2_node_remove_cg(lab2_tree *tree, int key) {
     // You need to implement lab2_node_remove_cg function.
+    pthread_mutex_lock(&mtx);
     lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
-    if(t == NULL) return 0;
+    if(t == NULL){
+        pthread_mutex_unlock(&mtx);
+        return 0;
+    }
     while(t->key != key){
         //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
@@ -391,6 +400,9 @@ int lab2_node_remove_cg(lab2_tree *tree, int key) {
         t->key = succ->key;
         t = succ;
     }
+    t=NULL;
+    pthread_mutex_unlock(&mtx);
+    return 0;
 }
 
 
