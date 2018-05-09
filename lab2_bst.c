@@ -47,6 +47,7 @@ lab2_tree *lab2_tree_create() {
     lab2_tree *tree = (lab2_tree *)malloc(sizeof(lab2_tree));
     pthread_mutex_init(&tree->mutex, NULL);
     tree->root = NULL;
+    node_count = 0;
     return tree;
 }
 
@@ -207,15 +208,15 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_remove(lab2_tree *tree, int key) {
     // You need to implement lab2_node_remove function.
-    // c
-    // c
     lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
-
-    if(t == NULL) return 0;
-    while(t->key != key){
+    node_count--;
+    while(t != NULL && t->key != key){
         //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
         t = (key < t->key) ? t->left : t->right;
+    }
+    if(t == NULL) {
+        return 0;
     }
     if( (t->left == NULL) && (t->right == NULL) ){
         if(p != NULL){
@@ -225,39 +226,29 @@ int lab2_node_remove(lab2_tree *tree, int key) {
                 p->right = NULL;
             }
         } else{
-        
             tree->root = NULL;
         }
     } else if( (t->left == NULL) || (t->right == NULL) ){
         child = (t->left != NULL) ? t->left : t->right;
         if( p != NULL ){
             if( p->left == t ){
-            
                 p->left = child;
-            }
-            else{
-            
+            } else{
                 p->right = child;
             }
-        }
-        else{ 
-        
+        } else{ 
             tree->root = child;
         }
     } else {
         succ_p = t;
-    
         succ = t->right;
         while( succ->left != NULL ){
-        
             succ_p = succ;
             succ = succ->left;
         }
-        
         if( succ_p->left == succ ){
             succ_p->left = succ->right;
-        }
-        else{
+        } else{
             succ_p->right = succ->right;
         }
         t->key = succ->key;
@@ -277,15 +268,23 @@ int lab2_node_remove(lab2_tree *tree, int key) {
  *  @return                 : status (success or fail)
  */
 int lab2_node_remove_fg(lab2_tree *tree, int key) {
- lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
-
-    if(t == NULL) return 0;
-    while(t->key != key){
+    // You need to implement lab2_node_remove function.
+    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
+    while(t != NULL && t->key != key){
         //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
+        pthread_mutex_lock(&p->mutex);
         t = (key < t->key) ? t->left : t->right;
+        pthread_mutex_unlock(&p->mutex);
+    }
+    if(t == NULL) {
+        pthread_mutex_lock(&tree->mutex);
+        node_count--;
+        pthread_mutex_unlock(&tree->mutex);
+        return 0;
     }
     if( (t->left == NULL) && (t->right == NULL) ){
+        pthread_mutex_lock(&tree->mutex);
         if(p != NULL){
             if( p->left == t ){
                 p->left = NULL;
@@ -293,43 +292,42 @@ int lab2_node_remove_fg(lab2_tree *tree, int key) {
                 p->right = NULL;
             }
         } else{
-        
             tree->root = NULL;
         }
+        node_count--;
+        pthread_mutex_unlock(&tree->mutex);
     } else if( (t->left == NULL) || (t->right == NULL) ){
+        pthread_mutex_lock(&tree->mutex);
         child = (t->left != NULL) ? t->left : t->right;
         if( p != NULL ){
             if( p->left == t ){
-            
                 p->left = child;
-            }
-            else{
-            
+            } else{
                 p->right = child;
             }
-        }
-        else{ 
-        
+        } else{ 
             tree->root = child;
         }
+        node_count--;
+        pthread_mutex_unlock(&tree->mutex);
     } else {
+        pthread_mutex_lock(&tree->mutex);
         succ_p = t;
-    
         succ = t->right;
         while( succ->left != NULL ){
-        
             succ_p = succ;
             succ = succ->left;
         }
         
         if( succ_p->left == succ ){
             succ_p->left = succ->right;
-        }
-        else{
+        } else{
             succ_p->right = succ->right;
         }
+        node_count--;
         t->key = succ->key;
         t = succ;
+        pthread_mutex_unlock(&tree->mutex);
     }
     t=NULL;
     //lab2_node_print_inorder(tree);
@@ -349,14 +347,15 @@ int lab2_node_remove_cg(lab2_tree *tree, int key) {
     // You need to implement lab2_node_remove_cg function.
     pthread_mutex_lock(&tree->mutex);
     lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
-    if(t == NULL){
-        pthread_mutex_unlock(&tree->mutex);
-        return 0;
-    }
-    while(t->key != key){
+    node_count--;
+    while(t != NULL && t->key != key){
         //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
         t = (key < t->key) ? t->left : t->right;
+    }
+    if(t == NULL){
+        pthread_mutex_unlock(&tree->mutex);
+        return 0;
     }
     if( (t->left == NULL) && (t->right == NULL) ){
         if(p != NULL){
@@ -373,12 +372,10 @@ int lab2_node_remove_cg(lab2_tree *tree, int key) {
         if( p != NULL ){
             if( p->left == t ){
                 p->left = child;
-            }
-            else{
+            } else{
                 p->right = child;
             }
-        }
-        else{ 
+        } else{ 
             tree->root = child;
         }
     } else {
@@ -391,8 +388,7 @@ int lab2_node_remove_cg(lab2_tree *tree, int key) {
         
         if( succ_p->left == succ ){
             succ_p->left = succ->right;
-        }
-        else{
+        } else{
             succ_p->right = succ->right;
         }
         
@@ -417,7 +413,6 @@ void lab2_tree_delete(lab2_tree *tree) {
     // You need to implement lab2_tree_delete function.
     int key;
     lab2_node *t = tree->root;
-    node_count = 0;
     if(t == NULL) return;
     while(t != NULL){
         key = t->key;
