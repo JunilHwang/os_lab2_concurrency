@@ -159,7 +159,7 @@ void bst_test(int num_threads,int node_count){
     lab2_tree_delete(tree);
 
     /*
-     *  multi thread insert test fine-grained \
+     *  multi thread insert test fine-grained
      */
     is_sync = LAB2_TYPE_FINEGRAINED;
     tree = lab2_tree_create();
@@ -184,6 +184,8 @@ void bst_test(int num_threads,int node_count){
     print_result(tree,num_threads, node_count, is_sync, LAB2_OPTYPE_INSERT,exe_time);
     lab2_tree_delete(tree);
     
+    return;
+
     /* 
      * single thread delete test
      */
@@ -270,7 +272,7 @@ void bst_test(int num_threads,int node_count){
     exe_time = get_timeval(&tv_delete_start, &tv_delete_end);
 
     print_result(tree ,num_threads, node_count, is_sync, LAB2_OPTYPE_DELETE,exe_time);
-    printf("test\n");
+    //printf("test\n");
     lab2_tree_delete(tree);
 
     printf("\n");

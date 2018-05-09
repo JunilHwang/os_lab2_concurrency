@@ -19,6 +19,9 @@
 
 #include "lab2_sync_types.h"
 
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+int node_count = 0;
+
 /*
  * TODO
  *  Implement funtction which traverse BST in in-order
@@ -28,7 +31,7 @@
  */
 int lab2_node_print_inorder(lab2_tree *tree) {
     inorder(tree->root);
-    printf("\n");
+    printf("\n node Number : %d",node_count);
     return 0;
 }
 
@@ -42,6 +45,7 @@ int lab2_node_print_inorder(lab2_tree *tree) {
 lab2_tree *lab2_tree_create() {
     // You need to implement lab2_tree_create function.
     lab2_tree *tree = (lab2_tree *)malloc(sizeof(lab2_tree));
+    pthread_mutex_init(&tree->mutex, NULL);
     tree->root = NULL;
     return tree;
 }
@@ -57,8 +61,10 @@ lab2_tree *lab2_tree_create() {
 lab2_node * lab2_node_create(int key) {
     // You need to implement lab2_node_create function.
     lab2_node *n = (lab2_node *)malloc(sizeof(lab2_node));
+    pthread_mutex_init(&n->mutex, NULL);
     n->key = key;
-    n->left = n->right = NULL;
+    n->left = NULL;
+    n->right = NULL;
     return n;
 }
 
@@ -79,9 +85,9 @@ int lab2_node_insert(lab2_tree *tree, lab2_node *new_node){
     while(t != NULL){
         if(key == t->key) {
             // printf("key == t->key \n");
+            node_count++;
             return 0;
         }
-
         p = t;
         t = key < t->key ? t->left : t->right;
     }
@@ -89,15 +95,16 @@ int lab2_node_insert(lab2_tree *tree, lab2_node *new_node){
     if(p == NULL) {
         tree->root = n;
         // printf("t = new_node; \n");
+        node_count++;
         return 0;
     }
     if(key < p->key){
         p->left = n;
-    }
-    else{
+    } else {
         p->right = n;
     }
     // printf("insert key : %d\n", key);
+    node_count++;
     return 0;
 }
 
@@ -110,8 +117,43 @@ int lab2_node_insert(lab2_tree *tree, lab2_node *new_node){
  *  @return                     : status (success or fail)
  */
 int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
-      // You need to implement lab2_node_insert_fg function.
-    lab2_node_insert(tree, new_node);
+    // You need to implement lab2_node_insert function.
+    
+    lab2_node *p = NULL,
+              *t = tree->root,
+              *n;
+    int key = new_node->key;
+    while(t != NULL){
+        //printf("mtx lock : %d\n",&mtx);
+        if(key == t->key) {
+            // printf("key == t->key \n");
+            return 0;
+        }
+        pthread_mutex_lock(&mtx);
+        p = t;
+        t = key < t->key ? t->left : t->right;
+        pthread_mutex_unlock(&mtx);
+        //printf("mtx unlock : %d\n",&mtx);
+    }
+    n = new_node;
+    if(p == NULL) {
+        pthread_mutex_lock(&mtx);
+        tree->root = n;
+        // printf("t = new_node; \n");
+        node_count++;
+        pthread_mutex_unlock(&mtx);
+        return 0;
+    }
+    pthread_mutex_lock(&mtx);
+    if(key < p->key){
+        p->left = n;
+    } else {
+        p->right = n;
+    }
+    node_count++;
+    pthread_mutex_unlock(&mtx);
+    // printf("insert key : %d\n", key);
+    return 0;
 }
 
 /* 
@@ -124,7 +166,34 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
     // You need to implement lab2_node_insert_cg function.
-    lab2_node_insert(tree, new_node);
+    lab2_node *p = NULL,
+              *t = tree->root,
+              *n;
+    int key = new_node->key;
+    while(t != NULL){
+        if(key == t->key) {
+            // printf("key == t->key \n");
+            node_count++;
+            return 0;
+        }
+        p = t;
+        t = key < t->key ? t->left : t->right;
+    }
+    n = new_node;
+    if(p == NULL) {
+        tree->root = n;
+        // printf("t = new_node; \n");
+        node_count++;
+        return 0;
+    }
+    if(key < p->key){
+        p->left = n;
+    } else {
+        p->right = n;
+    }
+    // printf("insert key : %d\n", key);z
+    node_count++;
+    return 0;
 }
 
 /* 
@@ -137,12 +206,84 @@ int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_remove(lab2_tree *tree, int key) {
     // You need to implement lab2_node_remove function.
-
+    // c
+    // c
     lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
 
     if(t == NULL) return 0;
     while(t->key != key){
-        printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
+        //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
+        p = t;
+        t = (key < t->key) ? t->left : t->right;
+    }
+    if( (t->left == NULL) && (t->right == NULL) ){
+        if(p != NULL){
+            if( p->left == t ){
+                p->left = NULL;
+            } else{
+                p->right = NULL;
+            }
+        } else{
+        
+            tree->root = NULL;
+        }
+    } else if( (t->left == NULL) || (t->right == NULL) ){
+        child = (t->left != NULL) ? t->left : t->right;
+        if( p != NULL ){
+            if( p->left == t ){
+            
+                p->left = child;
+            }
+            else{
+            
+                p->right = child;
+            }
+        }
+        else{ 
+        
+            tree->root = child;
+        }
+    } else {
+        succ_p = t;
+    
+        succ = t->right;
+        while( succ->left != NULL ){
+        
+            succ_p = succ;
+            succ = succ->left;
+        }
+        
+        if( succ_p->left == succ ){
+            succ_p->left = succ->right;
+        }
+        else{
+            succ_p->right = succ->right;
+        }
+        t->key = succ->key;
+        t = succ;
+    }
+    t=NULL;
+    //lab2_node_print_inorder(tree);
+    return 0;
+}
+
+/* 
+ * TODO
+ *  Implement a function which remove nodes from the BST in fine-grained manner.
+ *
+ *  @param lab2_tree *tree  : bst tha you need to remove node in fine-grained manner from bst which contains key.
+ *  @param int key          : key value that you want to delete. 
+ *  @return                 : status (success or fail)
+ */
+int lab2_node_remove_fg(lab2_tree *tree, int key) {
+    // You need to implement lab2_node_remove_fg function.
+    
+    
+    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
+
+    if(t == NULL) return 0;
+    while(t->key != key){
+        //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
         t = (key < t->key) ? t->left : t->right;
     }
@@ -188,21 +329,7 @@ int lab2_node_remove(lab2_tree *tree, int key) {
         t = succ;
     }
     t=NULL;
-    lab2_node_print_inorder(tree);
     return 0;
-}
-
-/* 
- * TODO
- *  Implement a function which remove nodes from the BST in fine-grained manner.
- *
- *  @param lab2_tree *tree  : bst tha you need to remove node in fine-grained manner from bst which contains key.
- *  @param int key          : key value that you want to delete. 
- *  @return                 : status (success or fail)
- */
-int lab2_node_remove_fg(lab2_tree *tree, int key) {
-    // You need to implement lab2_node_remove_fg function.
-    lab2_node_remove(tree,key);
 }
 
 
@@ -216,7 +343,54 @@ int lab2_node_remove_fg(lab2_tree *tree, int key) {
  */
 int lab2_node_remove_cg(lab2_tree *tree, int key) {
     // You need to implement lab2_node_remove_cg function.
-    lab2_node_remove(tree,key);
+    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
+    if(t == NULL) return 0;
+    while(t->key != key){
+        //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
+        p = t;
+        t = (key < t->key) ? t->left : t->right;
+    }
+    if( (t->left == NULL) && (t->right == NULL) ){
+        if(p != NULL){
+            if( p->left == t ){
+                p->left = NULL;
+            } else{
+                p->right = NULL;
+            }
+        } else{ 
+            tree->root = NULL;
+        }
+    } else if( (t->left == NULL) || (t->right == NULL) ){
+        child = (t->left != NULL) ? t->left : t->right;
+        if( p != NULL ){
+            if( p->left == t ){
+                p->left = child;
+            }
+            else{
+                p->right = child;
+            }
+        }
+        else{ 
+            tree->root = child;
+        }
+    } else {
+        succ_p = t;
+        succ = t->right;
+        while( succ->left != NULL ){
+            succ_p = succ;
+            succ = succ->left;
+        }
+        
+        if( succ_p->left == succ ){
+            succ_p->left = succ->right;
+        }
+        else{
+            succ_p->right = succ->right;
+        }
+        
+        t->key = succ->key;
+        t = succ;
+    }
 }
 
 
@@ -232,10 +406,11 @@ void lab2_tree_delete(lab2_tree *tree) {
     // You need to implement lab2_tree_delete function.
     int key;
     lab2_node *t = tree->root;
+    node_count = 0;
     if(t == NULL) return;
     while(t != NULL){
         key = t->key;
-        printf("key : %d\n",key);
+        //printf("key : %d\n",key);
         lab2_node_remove(tree, key);
         t = tree->root;
     }
@@ -263,9 +438,9 @@ void lab2_node_delete(lab2_node *node) {
  *  @param lab2_tree *tree  : bst node which you want to remove. 
  *  @return                 : status(success or fail)
  */
-void inorder(lab2_node *node){
+void inorder(lab2_node *node){  
     if(node == NULL) return;
     inorder(node->left);
-    printf("%d ", node->key);
+    //printf("%d ", node->key);
     inorder(node->right);
 }

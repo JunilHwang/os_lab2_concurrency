@@ -42,6 +42,7 @@ typedef struct lab2_node {
  */
 typedef struct lab2_tree {
     struct lab2_node *root;
+    pthread_mutex_t mutex;
 } lab2_tree;
 
 /* 
