@@ -163,11 +163,11 @@ int lab2_node_insert_fg(lab2_tree *tree, lab2_node *new_node){
  */
 int lab2_node_insert_cg(lab2_tree *tree, lab2_node *new_node){
     // You need to implement lab2_node_insert_cg function.
+    pthread_mutex_lock(&tree->mutex);
     lab2_node *p = NULL,
               *t = tree->root,
               *n;
     int key = new_node->key;
-    pthread_mutex_lock(&tree->mutex);
     while(t != NULL){
         if(key == t->key) {
             // printf("key == t->key \n");
@@ -277,12 +277,82 @@ int lab2_node_remove(lab2_tree *tree, int key) {
  *  @return                 : status (success or fail)
  */
 int lab2_node_remove_fg(lab2_tree *tree, int key) {
-    // You need to implement lab2_node_remove_fg function.
-    
-    
-    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
+ lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
 
     if(t == NULL) return 0;
+    while(t->key != key){
+        //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
+        p = t;
+        t = (key < t->key) ? t->left : t->right;
+    }
+    if( (t->left == NULL) && (t->right == NULL) ){
+        if(p != NULL){
+            if( p->left == t ){
+                p->left = NULL;
+            } else{
+                p->right = NULL;
+            }
+        } else{
+        
+            tree->root = NULL;
+        }
+    } else if( (t->left == NULL) || (t->right == NULL) ){
+        child = (t->left != NULL) ? t->left : t->right;
+        if( p != NULL ){
+            if( p->left == t ){
+            
+                p->left = child;
+            }
+            else{
+            
+                p->right = child;
+            }
+        }
+        else{ 
+        
+            tree->root = child;
+        }
+    } else {
+        succ_p = t;
+    
+        succ = t->right;
+        while( succ->left != NULL ){
+        
+            succ_p = succ;
+            succ = succ->left;
+        }
+        
+        if( succ_p->left == succ ){
+            succ_p->left = succ->right;
+        }
+        else{
+            succ_p->right = succ->right;
+        }
+        t->key = succ->key;
+        t = succ;
+    }
+    t=NULL;
+    //lab2_node_print_inorder(tree);
+    return 0;
+}
+
+
+/* 
+ * TODO
+ *  Implement a function which remove nodes from the BST in coarse-grained manner.
+ *
+ *  @param lab2_tree *tree  : bst tha you need to remove node in coarse-grained manner from bst which contains key.
+ *  @param int key          : key value that you want to delete. 
+ *  @return                 : status (success or fail)
+ */
+int lab2_node_remove_cg(lab2_tree *tree, int key) {
+    // You need to implement lab2_node_remove_cg function.
+    pthread_mutex_lock(&tree->mutex);
+    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
+    if(t == NULL){
+        pthread_mutex_unlock(&tree->mutex);
+        return 0;
+    }
     while(t->key != key){
         //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
         p = t;
@@ -330,68 +400,8 @@ int lab2_node_remove_fg(lab2_tree *tree, int key) {
         t = succ;
     }
     t=NULL;
+    pthread_mutex_unlock(&tree->mutex);
     return 0;
-}
-
-
-/* 
- * TODO
- *  Implement a function which remove nodes from the BST in coarse-grained manner.
- *
- *  @param lab2_tree *tree  : bst tha you need to remove node in coarse-grained manner from bst which contains key.
- *  @param int key          : key value that you want to delete. 
- *  @return                 : status (success or fail)
- */
-int lab2_node_remove_cg(lab2_tree *tree, int key) {
-    // You need to implement lab2_node_remove_cg function.
-    lab2_node *p = NULL, *child, *succ, *succ_p, *t = tree->root;
-    if(t == NULL) return 0;
-    while(t->key != key){
-        //printf("left : %d, right : %d\n", t->left->key, t->right->left->key);
-        p = t;
-        t = (key < t->key) ? t->left : t->right;
-    }
-    if( (t->left == NULL) && (t->right == NULL) ){
-        if(p != NULL){
-            if( p->left == t ){
-                p->left = NULL;
-            } else{
-                p->right = NULL;
-            }
-        } else{ 
-            tree->root = NULL;
-        }
-    } else if( (t->left == NULL) || (t->right == NULL) ){
-        child = (t->left != NULL) ? t->left : t->right;
-        if( p != NULL ){
-            if( p->left == t ){
-                p->left = child;
-            }
-            else{
-                p->right = child;
-            }
-        }
-        else{ 
-            tree->root = child;
-        }
-    } else {
-        succ_p = t;
-        succ = t->right;
-        while( succ->left != NULL ){
-            succ_p = succ;
-            succ = succ->left;
-        }
-        
-        if( succ_p->left == succ ){
-            succ_p->left = succ->right;
-        }
-        else{
-            succ_p->right = succ->right;
-        }
-        
-        t->key = succ->key;
-        t = succ;
-    }
 }
 
 

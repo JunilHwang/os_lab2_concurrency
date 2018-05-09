@@ -184,7 +184,6 @@ void bst_test(int num_threads,int node_count){
     print_result(tree,num_threads, node_count, is_sync, LAB2_OPTYPE_INSERT,exe_time);
     lab2_tree_delete(tree);
     
-    return;
 
     /* 
      * single thread delete test
